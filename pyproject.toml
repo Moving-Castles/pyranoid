@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyranoid"
+version = "0.1.0"
+description = "A faithful modern Python port of Kenneth Colby's 1972 PARRY, built from recovered source and data."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["parry", "colby", "chatbot", "history-of-ai", "eliza", "paranoia"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Science/Research",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+parry = "pyranoid.repl:main"
+
+[project.urls]
+"Original source (CMU AI Repository)" = "https://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/classics/parry/"
+"WAITS revival (ELIZAGEN)" = "https://sites.google.com/view/elizagen-org/blog/parry-parries-again"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pyranoid"]
+# non-Python data files under the package are included automatically.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
