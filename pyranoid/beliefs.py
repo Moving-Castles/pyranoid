@@ -64,14 +64,24 @@ class InfRule:
 @dataclass
 class BeliefBase:
     beliefs: dict                 # name -> Belief
-    th2_responses: list           # list[Th2Response]
-    th2_groups: list              # list[Th2Group]
+    th2_responses: list           # list[Th2Response]   (informational)
+    th2_groups: list              # list[Th2Group]      (informational)
     emotes: list                  # list[Emote]
     rules: list                   # list[InfRule]
+    th2_raw: list                 # list[(consequent, items)] — every TH2 line
 
     def intentions(self) -> list:
         """Intention names in priority order (bel lists them low -> high)."""
         return [b.name for b in self.beliefs.values() if b.cls == "INN"]
+
+    def oppos(self) -> dict:
+        """belief <-> its *opposite (mutual), from bel complement links."""
+        out: dict = {}
+        for b in self.beliefs.values():
+            if b.complement:
+                out[b.name] = b.complement
+                out[b.complement] = b.name
+        return out
 
     @classmethod
     def load(cls, bel_path=None, inf_path=None) -> BeliefBase:
@@ -150,21 +160,24 @@ def _load_inf(path: Path) -> dict:
     th2_groups: list = []
     emotes: list = []
     rules: list = []
+    th2_raw: list = []
     for form in _read_sexprs(text):
         if not form or not isinstance(form[0], str):
             continue
         head = form[0]
         if head == "TH2":
             arg = form[1]
+            # consequent is a bare belief atom or (belief strength); items follow
             if isinstance(arg, list):
-                # (TH2 (BELIEF strength) unit...)
-                belief = arg[0]
-                strength = _num(arg[1]) if len(arg) > 1 else 2.0
-                units = [u for u in form[2:] if isinstance(u, str)]
-                th2_responses.append(Th2Response(belief, strength, units))
+                consequent = (arg[0], _num(arg[1]) if len(arg) > 1 else 2.0)
             else:
-                # (TH2 NAME member...)
-                th2_groups.append(Th2Group(arg, [m for m in form[2:] if isinstance(m, str)]))
+                consequent = arg
+            items = [x for x in form[2:] if isinstance(x, str)]
+            th2_raw.append((consequent, items))
+            if isinstance(arg, list):
+                th2_responses.append(Th2Response(arg[0], _num(arg[1]), items))
+            else:
+                th2_groups.append(Th2Group(arg, items))
         elif head == "EMOTE":
             jspec = form[1]  # (JUMP value)
             if isinstance(jspec, list) and len(jspec) >= 2:
@@ -181,4 +194,5 @@ def _load_inf(path: Path) -> dict:
         "th2_groups": th2_groups,
         "emotes": emotes,
         "rules": rules,
+        "th2_raw": th2_raw,
     }
