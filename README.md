@@ -67,48 +67,69 @@ primary response database (5 Nov 1974) has 659 input units and 521 response unit
 Each turn, `Parry.respond()` reconstructs PARRY's `REACT` control loop:
 
 1. **Canonicalise** the input (`frontend.py`): expand contractions, map synonyms,
-   substitute idioms, truncate words to five characters, then match against the
-   simple patterns (`spats`) and reduce with compound patterns (`cpats`) to a
-   semantic unit.
+   strip suffixes to a known root, substitute idioms, segment into fragments at
+   startr/stoppr boundaries, then match against the simple patterns (`spats`),
+   reduce with compound patterns (`cpats`), and flip on negation (`negate.pat`) to
+   a semantic unit.
 2. **Answer from memory** (`memory.py`): resolve a follow-up ("why?", "who?")
-   against the current anaphora list, else take the matched unit's response.
-3. **Run the affect model** (`model.py`) every turn: flare, delusion, and
-   sensitive words set emotion "jumps"; `RAISE` applies them (saturating toward a
-   ceiling of 20, with permanent sensitisation of the baselines); a high-emotion
-   **intention** can pre-empt the literal answer with an evasive or hostile reply.
-4. **Fall back** through a keyword scan (delusion → flare → topic story) and a
-   noncommittal reply if nothing matched.
-5. **Select and consume** a sentence (each said at most once per interview; a unit
+   against the current anaphora list (with `!ALLANAPHS` synonyms), else the
+   matched unit's response.
+3. **Infer** (`inference.py`): the matched unit's `TH2` hooks assert beliefs about
+   the doctor (hostile, harmful, insulting, mafia-connected) and about the self
+   (crazy, dumb, loser, lying); asserting a belief fires its `EMOTE` rules, arming
+   the HURT/FEAR/ANGER jumps; `IF`-theorems forward-chain to more beliefs and to
+   intention scores.
+4. **Affect** (`model.py`, `parry.py`): `RAISE` applies the jumps (saturating
+   toward 20, with permanent sensitisation); on high emotion an **intention**
+   (`PPARANOIA`, `PSTRONGFEEL`, `PEXIT2`) is forced, and paranoia projects the
+   self-shame onto distrust of the doctor.
+5. **Do-intent**: the highest-priority intention above threshold drives the reply,
+   routed by the matched unit's `CLASS`, pre-empting the literal answer. Otherwise
+   fall back through the keyword scan and a noncommittal reply.
+6. **Select and consume** a sentence (each said at most once per interview; a unit
    exhausts and recovers when emptied), then **decay** the emotions toward baseline.
 
 | Module | Ported from | Role |
 |---|---|---|
 | `pdat.py` | recovered `pdatz` | semantic-memory loader |
-| `data.py` | `dictio`, `synonm.alf`, `spats.sel`, `cpats.sel`, … | lexicon & pattern tables |
+| `data.py` | `dictio`, `synonm.alf`, `spats.sel`, `cpats.sel`, `suffix`, `negate.pat`, … | lexicon & pattern tables |
 | `parry_data.py` | `rdata` | flare topics, weights, delusion sequences |
-| `model.py` | `opar3`, `pmem2/4/5` | paranoid affect engine |
+| `model.py` | `opar3`, `pmem2/4/5` | paranoid affect engine (RAISE, decay, flares, delusion) |
+| `beliefs.py` | `bel`, `inf` | belief table and TH2/EMOTE/IF rule loader |
+| `inference.py` | `pmem4/5` | the "doctor model": forward-chaining beliefs, EMOTE jumps, intentions |
 | `frontend.py` | `front.lap` + Colby's papers | sentence → semantic unit (reconstructed) |
 | `memory.py` | `pmem`, `pdatb` | response selection & anaphora |
-| `parry.py`, `repl.py` | `pmem4` REACT | control loop & interview |
+| `parry.py`, `repl.py` | `pmem4` REACT | control loop (INFERENCE→AFFECT→DOINTENT) & interview |
 
 All of PARRY's data lives in `pyranoid/data/` (the lexicon and pattern tables plus
 the recovered response database), so the package is self-contained.
 
 ### Faithful vs. reconstructed
 
-Faithful to the originals: the response database and every data table are the real
-recovered files; the affect dynamics, flare weights, pointer chain, delusion story
-sequences and version baselines are ported directly from `opar3`/`rdata`/`pmem`;
-the control priority follows the `pmem4` flow.
+**Faithful to the originals** (ported directly, verified against source): the
+response database and every data table are the real recovered files; the affect
+engine (`RAISE`, `MODIFVAR`, the saturating updates and cross-coupling constants,
+version baselines); the flare weights, pointer chain, and delusion story
+sequences; the belief table and the TH2/EMOTE/IF inference rules; the forward-
+chaining `PROVE`, `ASSERT2`/`ADDTO`/`INFEMOTE` semantics and the `INFERENCE →
+AFFECT → DOINTENT` control flow; response cycling and exhaustion.
 
-Reconstructed: the linguistic front-end (`front.lap`) survives only as compiled
-PDP-10 assembly, so its tokenise → canonicalise → match pipeline is rebuilt from
-the documented algorithm and Colby's papers, running on his real pattern tables.
-It maps most interview questions to the right unit; a few (for example "for a
-living") mis-segment where the original's fragment analyser was subtler. These are
-matcher-precision gaps, not data gaps. The data itself also has authentic quirks
-(one duplicate response id, one dangling reference), which the loader surfaces
-rather than hides.
+**Reconstructed** (from the documented algorithm and Colby's papers, running on
+his real data): the linguistic front-end (`front.lap`) survives only as compiled
+PDP-10 assembly, so the tokenise → canonicalise → segment → match pipeline is
+rebuilt. It maps most interview questions to the right unit; a few mis-segment
+where the original's analyser was subtler.
+
+**Simplified / not yet ported** (honest remaining gaps): the proactive delusion
+lead-in (`PHELP`→`FLARELEAD`) is passive, so PARRY steers toward its Mafia story
+less than the original; a few intent routines (`PONTOP`, `PGETBACK`, `PSUFFER`)
+and `CHECKINPUT`'s gibberish/misspelling detection are stubs; the statistical
+doctor-model rules that read conversation counters (`NEWTOPICNO`, `SPECFNRA`) are
+inert because those counters aren't fully tracked; a handful of front-end tables
+(`multi`, `nearby.key` respeller, `famly`/`same`/`filler`) are loaded but unused.
+
+The data itself has authentic quirks (one duplicate response id, one dangling
+reference) that the loader surfaces rather than hides.
 
 ## Tests
 

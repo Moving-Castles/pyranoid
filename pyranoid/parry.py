@@ -1,14 +1,20 @@
-"""PARRY — the top-level agent tying the front-end, model, and memory together.
+"""PARRY — the top-level agent tying front-end, model, memory, and inference.
 
-Implements a faithful reconstruction of the REACT control loop (pmem4 REACT,
-per the ported spec): per turn it canonicalises the input, tries an in-memory
-answer (with anaphora), runs the affect/flare/delusion model, lets an emotion-
-driven intention pre-empt the literal answer, and otherwise falls back through
-keyword and miscellaneous replies — then decays the emotions.
+Implements the REACT control loop (pmem4). Per turn:
 
-Faithful in structure and data (Colby's real patterns, memory, and affect
-dynamics); the pattern front-end and some of REACT's glue are reconstructed
-because the original front.lap survives only as compiled assembly.
+  1. canonicalise the input and match it to a semantic unit (frontend)
+  2. resolve anaphora / take the matched unit as the literal answer (memory)
+  3. INFERENCE: the matched unit asserts beliefs about the doctor/self, which
+     fire EMOTE emotion jumps and forward-chain to intention scores (inference)
+  4. AFFECT: RAISE the emotions; force a paranoid / strong-feeling intention;
+     project shame onto distrust of the doctor
+  5. DOINTENT: the winning intention drives the reply, routed by the unit's
+     CLASS, pre-empting the literal answer; else keyword / miscellaneous fallback
+  6. decay the emotions (MODIFVAR)
+
+Faithful in structure and data (Colby's real patterns, memory, affect dynamics,
+belief and inference rules); the pattern front-end is reconstructed because the
+original front.lap survives only as compiled assembly.
 """
 
 from __future__ import annotations
