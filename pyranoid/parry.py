@@ -1,362 +1,232 @@
-"""PARRY — the top-level agent tying front-end, model, memory, and inference.
+"""PARRY: the whole program as one image, and the interview loop.
 
-Implements the REACT control loop (pmem4). Per turn:
+``Parry`` composes the routine-for-routine ports of the original source
+files -- ``front.lap`` (FrontMixin), ``opar3`` (OparMixin), ``pmem``
+(PmemMixin), ``pmem2`` (Pmem2Mixin), ``pmem4`` (Pmem4Mixin) and ``pmem5``
+(Pmem5Mixin) -- onto a single property-list image, the way the original ran
+as one LISP core image.  Every SPECIAL variable of the original is an
+attribute with the original's name (``FEAR``, ``AJUMP``, ``DELFLAG``,
+``INPUTQUES`` ...; the ``?!`` sigil is dropped: ``!OUTPUT`` is ``OUTPUT``).
 
-  1. canonicalise the input and match it to a semantic unit (frontend)
-  2. resolve anaphora / take the matched unit as the literal answer (memory)
-  3. INFERENCE: the matched unit asserts beliefs about the doctor/self, which
-     fire EMOTE emotion jumps and forward-chain to intention scores (inference)
-  4. AFFECT: RAISE the emotions; force a paranoid / strong-feeling intention;
-     project shame onto distrust of the doctor
-  5. DOINTENT: the winning intention drives the reply, routed by the unit's
-     CLASS, pre-empting the literal answer; else keyword / miscellaneous fallback
-  6. decay the emotions (MODIFVAR)
-
-Faithful in structure and data (Colby's real patterns, memory, affect dynamics,
-belief and inference rules); the pattern front-end is reconstructed because the
-original front.lap survives only as compiled assembly.
+Initialisation follows the build scripts (``dor``): PMINITIALIZE loads the
+front-end tables; INITFB runs INITF and INITB (RDATA, PDATB, SETUPSTL,
+CHANGE); BINIT reads BEL and INF; INF sets the version parameters; the
+memory file PDATZ is read.  ``respond(line)`` is PARRY2 for each sentence
+on the line, as the original's READY: loop.
 """
 
 from __future__ import annotations
 
-import random
+import random as _random
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pyranoid import parry_data as D
-from pyranoid.beliefs import BeliefBase
-from pyranoid.data import DATA_DIR, Lexicon
-from pyranoid.frontend import FrontEnd
-from pyranoid.inference import Inference
-from pyranoid.memory import Dialogue
-from pyranoid.model import Model
-from pyranoid.pdat import load_pdat
+from pyranoid.front import FrontMixin
+from pyranoid.lisp import NIL, Lisp, LispError, Plist, is_nil, truthy
+from pyranoid.opar import OparMixin
+from pyranoid.pmem import PmemMixin
+from pyranoid.pmem2 import Pmem2Mixin
+from pyranoid.pmem4 import Pmem4Mixin
+from pyranoid.pmem5 import Pmem5Mixin
 
-# Words that end an interview / greet, detected before pattern matching.
-_GOODBYE = {"BYE", "GOODBYE", "GOODBY"}
-_GREETING = {"HELLO", "HI"}
-_SWEAR = {"SHIT", "FUCK", "DAMN", "BASTARD", "ASSHOLE"}
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
-# input CLASS -> reply group under strong feeling (pmem5 STRONGFEEL)
-_STRONGFEEL_GROUP = {
-    "INSULT": "ANGER", "WEAKINSULT": "PERS", "COMPLEMENT": "DISTANCE",
-    "SENSATTITUDE": "SENSREPLIES", "CRAZY": "HOSTILEREPLIES", "THREAT": "PANIC",
-    "DISBELIEF": "BELIEVEREPLIES", "APOLOGY": "ACCUSE", "LYING": "BELIEVEREPLIES",
+# the ?! globals: attribute name -> LISP symbol
+_BANG = {
+    "ANAPHLIST": "!ANAPHLIST", "ANAPHLISTOLD": "!ANAPHLISTOLD", "ANAPHLISTNEW": "!ANAPHLISTNEW",
+    "CLIST": "!CLIST", "CLAST": "!CLAST", "ALLANAPHS": "!ALLANAPHS", "LASTIN": "!LASTIN",
+    "LASTOUT": "!LASTOUT", "LAST_ANDTHEN": "!LAST_ANDTHEN", "OUTPUT": "!OUTPUT",
+    "LAST_OUTPUT": "!LAST_OUTPUT", "EXHAUST": "!EXHAUST", "ERROR_LIST": "!ERROR",
 }
-# input CLASS -> reply group under paranoia (pmem5 PPARANOIA)
-_PARANOIA_GROUP = {
-    "INSULT": "PANGER", "CRAZY": "AVOIDANCE", "THREAT": "PANIC", "ATTACK": "LIE",
-    "FEELINGS": "LIE", "WEAKINSULT": "PPERS", "COMPLEMENT": "PDISTANCE",
-    "DISBELIEF": "PBELIEVEREPLIES", "APOLOGY": "PACCUSE",
+_SYMBOL_TO_ATTR = {v: k for k, v in _BANG.items()}
+
+# every SPECIAL variable, with its value at load time
+_SPECIALS: dict = {
+    # pmem / pmem2 / pmem4 / pmem5
+    "ANAPHLIST": NIL, "ANAPHLISTOLD": NIL, "ANAPHLISTNEW": NIL, "CLIST": NIL, "CLAST": NIL,
+    "ALLANAPHS": NIL, "LASTIN": NIL, "LASTOUT": NIL, "LAST_ANDTHEN": NIL, "OUTPUT": NIL,
+    "LAST_OUTPUT": NIL, "EXHAUST": NIL, "ERROR_LIST": NIL, "WDFLAG": NIL, "REACTTO": NIL,
+    "ERRNAME": NIL, "STYPE": NIL, "STOPIC": NIL, "TRACE_MEM": NIL, "ENDE": NIL,
+    "INPUTQUES": NIL, "SSENT": NIL, "DO_SPELL": NIL, "NEXT_CHAR": " ", "MISSPELL": NIL,
+    "INPUTSSENT": NIL, "DOCNAME": NIL, "DOC_NAME_FLAG": NIL, "EXHAUSTNO": 0, "SILENCENO": 0,
+    "SWEARNO": 0, "PMINPUT": NIL, "PM2INPUT": NIL, "BUG": 0, "REACTINPUT": NIL,
+    "INPUTNO": 0, "REPEATNO": 0, "SPECFNNO": 0, "MISCNO": 0, "NEWTOPICNO": 0,
+    "OLDTOPIC": NIL, "OLDTOPICS": NIL, "HLIST": NIL,
+    "NEWPROVEN": NIL, "INTENT": NIL, "OLDINTENT": NIL, "BADINPUT": NIL, "DELNO": 0,
+    "PREV_OUTPUT": NIL, "PREV_SSENT": NIL, "PROVEL": NIL, "PROVEN": NIL, "INTLIST": NIL,
+    "PRINTALL": NIL, "OLDGIBB": 0, "OLDMISS": 0, "LOWMAN": NIL, "TRACEVFLAG": NIL,
+    "ACTION": NIL, "ONEDIA": NIL, "SUMEX": NIL, "EXPERIMENT": NIL, "STRUC": NIL,
+    "PARBEL": NIL, "PARA": NIL, "SPECFNRA": 0, "TYPE": NIL, "SAVE_FILE": NIL, "TRACEV": NIL,
+    "SUPPRESS": NIL, "VERSION": NIL,
+    # opar3
+    "POINTERS": NIL, "DELFLAG": NIL, "FLARE": "INIT", "FLARELIST": NIL, "TOPIC": NIL,
+    "DELNLIST": NIL, "DELVLIST": NIL, "DELALIST": NIL, "LIVEFLARES": NIL, "DEADFLARES": NIL,
+    "DELEND": NIL, "SENSITIVELIST": NIL, "WEIGHT": NIL, "WEAK": NIL, "CHOSEN": NIL,
+    "ANGER": 0, "FEAR": 0, "MISTRUST": 0, "HURT": 0, "ANGER0": 0, "FEAR0": 0, "MISTRUST0": 0,
+    "HURT0": 0, "AJUMP": NIL, "FJUMP": NIL, "HJUMP": NIL, "SETLIST": NIL,
+    # win
+    "WINDOWS": NIL,
+    # front.lap
+    "USE_CHUCK": NIL, "USE_BILL": NIL, "LEARNING": NIL, "STOP_ON": NIL, "RIGHT": NIL,
+    "PATTERN": NIL, "SP_MATCH": NIL, "CP_MATCH": NIL, "NOT_FLAG": NIL, "FAMILY_FLAG": NIL,
+    "ANY": NIL, "DID_SPELL": NIL, "GIBBERISH": 0, "MISSPELLED": 0,
 }
 
 
 @dataclass
 class Turn:
-    """Diagnostics for one exchange (mirrors the DIA trace)."""
+    """What the original wrote to the DIA file for one I/O pair."""
 
     user: str
     reply: str
-    unit: str | None = None
-    trace: str = ""            # OK / SPECIALANAPH / KEYWORD / NO_PATTERN / INTENT ...
-    intent: str | None = None
+    sentences: list = field(default_factory=list)   # the SSENTs on the line
+    unit: object = None                              # PMINPUT (pattern-matcher result)
+    bond: object = None                              # its BONDVALUE
+    trace: object = None                             # TRACE_MEM
+    new_beliefs: object = None                       # NEWPROVEN
+    intent: object = None                            # INTENT
+    output_unit: object = None                       # !LAST_OUTPUT
     affect: dict = field(default_factory=dict)
+    log: list = field(default_factory=list)          # the trace windows
 
 
-class Parry:
-    def __init__(self, src_dir=None, pdat=None, pdatb=None,
-                 version="STRONG", seed=None):
-        # Default to the data bundled inside the package, so the port is
-        # self-contained; callers may override with explicit paths.
-        src_dir = Path(src_dir) if src_dir else DATA_DIR
-        pdat = Path(pdat) if pdat else DATA_DIR / "pdatz.txt"
-        pdatb = Path(pdatb) if pdatb else DATA_DIR / "pdatb"
-        self.lex = Lexicon.load(src_dir)
-        self.frontend = FrontEnd(self.lex)
-        self.mem = load_pdat(pdat)
-        rng = random.Random(seed)
-        self.dialogue = Dialogue(self.mem, pdatb, rng=rng)
-        self.model = Model(version=version)
-        self.beliefs = BeliefBase.load()
-        self.inference = Inference(self.beliefs, self.model)
-        self.ended = False
-        self.exhaust_count = 0
-        self.inputno = 0
+class Parry(FrontMixin, OparMixin, PmemMixin, Pmem2Mixin, Pmem4Mixin, Pmem5Mixin):
+    """One PARRY core image: load the data, then ``respond`` to input lines."""
+
+    def __init__(self, data_dir=None, version="STRONG", seed=None, suppress=False,
+                 trace=False, clock=None, strict=False):
+        self.data_dir = Path(data_dir) if data_dir else DATA_DIR
+        self.plist = Plist()
+        self.lisp = Lisp(self, self.plist)
+        self._rng = _random.Random(seed)
+        self._clock = clock
+        self.strict = strict
+        self.low_memory = False
+        self.run_ms = 0
+        self.trace_log: list = []
+        self.learned: list = []
         self.turns: list[Turn] = []
-        self._w2flare = D.word_to_flare()
-        self._w2sens = D.word_to_sensitive()
+        self.OUTPUT_TEXT = ""
+        self.DIAGNOSTICS: list = []
+        for name, value in _SPECIALS.items():
+            setattr(self, name, value)
+        # the build order of the core image (dor): FRONT, then INITFB, BINIT, INF
+        self.pminitialize(self.data_dir)              # PMIN
+        self.initf()                                  # INITFB
+        self.initb(self.data_dir)
+        self.binit(self.data_dir)                     # BINIT
+        self.initparams(version, suppress)            # INF -> INITPARAMS
+        self.load_pdat(self.data_dir / "pdatz.txt")   # DSKLOC('PDATZ), read on demand originally
+        self.TRACEV = "ALL" if trace else NIL
+        self.ended = False
 
-    # -- helpers ------------------------------------------------------------
+    # -- the LISP host interface --------------------------------------------------------
+
+    def lisp_get(self, name):
+        attr = _SYMBOL_TO_ATTR.get(name, name)
+        try:
+            return getattr(self, attr)
+        except AttributeError:
+            raise LispError(f"unbound variable {name}") from None
+
+    def lisp_set(self, name, value):
+        setattr(self, _SYMBOL_TO_ATTR.get(name, name), value)
+
+    def lisp_fn(self, name):
+        if not isinstance(name, str):
+            return None
+        pyname = {"ASSERT": "assert_belief", "RAISE": "raise_"}.get(name, name.lower())
+        fn = getattr(self, pyname, None)
+        return fn if callable(fn) else None
+
+    def getprop(self, atom_, prop):
+        return self.plist.get(atom_, prop)
+
+    def putprop(self, atom_, value, prop):
+        return self.plist.put(atom_, value, prop)
+
+    def random(self, n: int) -> int:
+        """RANDOM(N): 1..N (the original divided the run time by N)."""
+        return self._rng.randint(1, max(int(n), 1))
+
+    def errset(self, thunk):
+        """ERRSET: (value) on success, NIL on a LISP error (logged)."""
+        try:
+            return [thunk()]
+        except LispError as e:
+            if self.strict:
+                raise
+            self.ERROR_LIST = [["LISP", str(e), self.BUG]] + list(self.ERROR_LIST or [])
+            return NIL
+        except (TypeError, AttributeError, IndexError, KeyError, ValueError, ZeroDivisionError) as e:
+            if self.strict:
+                raise
+            self.ERROR_LIST = [["LISP", repr(e), self.BUG]] + list(self.ERROR_LIST or [])
+            return NIL
+
+    # -- the interview -------------------------------------------------------------------
 
     def greeting(self) -> str:
-        return self.dialogue.choose("HELLO") or "GOOD AFTERNOON. HOW ARE YOU?"
+        """The interviewer speaks first; PARRY's opening line is a HELLO reply."""
+        unit = self.choose("HELLO")
+        self.OUTPUT = NIL
+        self.WDFLAG = NIL
+        self.ANAPHLISTNEW = NIL
+        words = self.express(unit, "RESP")
+        self.ANAPHLISTNEW = NIL
+        return self.stringate(words) if truthy(words) else "HELLO"
 
-    @staticmethod
-    def _is_question(text: str, words: list[str]) -> bool:
-        if "?" in text:
-            return True
-        q = {"HOW", "WHO", "WHOM", "WHAT", "WHEN", "WHERE", "WHY", "WHICH",
-             "BE", "DO", "DID", "CAN", "WILL", "ARE", "IS", "HAVE"}
-        return bool(words) and words[0] in q
+    def respond(self, line: str) -> str:
+        """PARRY2 for each sentence on the line; the reply to the last one.
 
-    def _scan_affect(self, words: list[str]) -> None:
-        """Set emotion jumps from flare / delusion / sensitive words (SKEYWD/AFFECT)."""
-        # DELCHECK/DELREF: a delusion noun/verb (MAFIA GUN DEATH CHIEF KILL SPY)
-        # triggers the delusion; ambiguous words (BEAT HATE) only at high mistrust.
-        delusion = set(D.DELUSION_NOUNS) | set(D.DELUSION_VERBS)
-        strong_set = set(D.DELUSION_NOUNS_STRONG) | set(D.DELUSION_VERBS_STRONG)
-        found = None
-        found_strong = False
-        for w in words:
-            if w in delusion:
-                found, found_strong = w, w in strong_set
+        The original required every input to end with a period or question
+        mark; a line without one is given a period.
+        """
+        text = line.strip()
+        if not text or text[-1] not in "!%).?]":
+            text = text + " ."
+        self.set_input(text + "\n")
+        self.NEXT_CHAR = " "
+        self.trace_log = []
+        self.OUTPUT_TEXT = ""
+        sentences: list = []
+        while True:
+            try:
+                self.parry2()
+            except LispError:
+                if self.strict:
+                    raise
+                self.OUTPUT_TEXT = "WHAT DO YOU MEAN BY THAT"
+            sentences.append(list(self.SSENT or []))
+            if not self.not_last_input():
                 break
-            if w in D.DELUSION_AMBIG and self.model.affect.mistrust > 10:
-                found = w
-                break
-        if found is not None:
-            self.model.delusion_reference(found_strong=found_strong)
-        else:
-            self.model.flare_reference(words)
-        # sensitive topics nudge anger a little (pmem5)
-        if any(w in self._w2sens for w in words):
-            self.model.ajump = max(self.model.ajump or 0.0, 0.2)
-
-    # -- the turn -----------------------------------------------------------
-
-    def respond(self, text: str) -> str:
-        self.dialogue.exhausted_now = False
-        analysis = self.frontend.analyse(text)
-        words = analysis.words
-        is_q = self._is_question(text, words)
-        trace = "NO_PATTERN"
-        intent = None
-        reactto: str | None = None      # the literal in-memory answer
-
-        # Step 2 — CHECKINPUT specials (swearing / bye / greeting)
-        special = None
-        if any(w in _SWEAR for w in words):
-            self.model.ajump = 0.6
-            special, trace = "SWEARING", "INTENT"
-        elif any(w in _GOODBYE for w in words):
+        reply = self.OUTPUT_TEXT
+        if truthy(self.ENDE):
             self.ended = True
-            special, trace = "BYE", "OK"
-        elif words and words[0] in _GREETING and analysis.unit is None:
-            special, trace = "HELLO", "OK"
-
-        # Step 3 — anaphora, then direct in-memory answer
-        if special is None:
-            anaph_target = None
-            if len(words) <= 2:
-                for w in words:
-                    anaph_target = self.dialogue.resolve_anaphor(w)
-                    if anaph_target:
-                        break
-            if anaph_target:
-                reactto, trace = anaph_target, "SPECIALANAPH"
-            elif analysis.unit and analysis.unit in self.mem.beliefs:
-                reactto, trace = analysis.unit, "OK"
-
-        # Step 5a — INFERENCE: the matched unit asserts beliefs about the doctor
-        # / self, which fire EMOTE jumps; flare/delusion words add their own.
-        self.inputno += 1
-        self._scan_affect(words)
-        self.inference.infer(analysis.unit, self._context(analysis))
-
-        # Step 5b — AFFECT: apply jumps, then set the forced intention.
-        forced = self._affect(analysis)
-
-        # Step 5c — DOINTENT: the winning intention may pre-empt the answer.
-        reply = None
-        unit_used = None
-        intent = self.inference.winning_intent(forced)
-        if special is not None:
-            reply = self.dialogue.choose(special)
-            unit_used = special
-        elif intent is not None:
-            reply = self._do_intent(intent, analysis, is_q)
-            if reply is not None:
-                unit_used, trace = intent, "INTENT"
-
-        # Step 5d — otherwise the literal answer
-        if reply is None and reactto is not None:
-            reply = self.dialogue.answer_unit(reactto)
-            unit_used = reactto
-            if reply is None and self.dialogue.exhausted_now:
-                reply = self._exhaustion_recovery()
-                unit_used, trace = "EXHAUST", "INTENT"
-
-        # Step 4 — keyword fallback (delusion/flare/topic scan)
-        if reply is None and not self.model.delflag:
-            kw = self._keyword_fallback(words)
-            if kw:
-                reply, unit_used, trace = kw, None, "KEYWORD"
-
-        # Step 6 — miscellaneous punt
-        if reply is None:
-            group = "QREPLIES" if is_q else "SREPLIES"
-            reply = self.dialogue.choose(group) or "I DON'T KNOW."
-            unit_used, trace = group, "NO_PATTERN"
-
-        # Step 9 — decay emotions, record the turn
-        self.model.modify_vars()
-        turn = Turn(user=text, reply=reply, unit=unit_used, trace=trace,
-                    intent=intent, affect=self.model.affect.snapshot())
+        turn = Turn(user=line, reply=reply, sentences=sentences,
+                    unit=self.PMINPUT, bond=self.getprop(self.REACTINPUT, "BONDVALUE"),
+                    trace=self.TRACE_MEM, new_beliefs=self.NEWPROVEN, intent=self.INTENT,
+                    output_unit=self.LAST_OUTPUT, affect=self.affect_snapshot(),
+                    log=list(self.trace_log))
         self.turns.append(turn)
         return reply
 
-    # -- AFFECT / DOINTENT -------------------------------------------------
+    def affect_snapshot(self) -> dict:
+        return {"fear": round(self.FEAR, 2), "anger": round(self.ANGER, 2),
+                "mistrust": round(self.MISTRUST, 2), "hurt": round(self.HURT, 2)}
 
-    def _context(self, analysis) -> dict:
-        """Runtime variables the IF-rule antecedents read (MEASURE/GREATERP/EQ)."""
-        a = self.model.affect
-        return {
-            "FEAR": a.fear, "ANGER": a.anger, "MISTRUST": a.mistrust, "HURT": a.hurt,
-            "INPUTNO": self.inputno, "REPEATNO": 0, "NEWTOPICNO": 0,
-            "MISCNO": 0, "SPECFNRA": 0, "DELNO": 0,
-            "STOPIC": self.model.topic, "DELFLAG": self.model.delflag,
-        }
+    # -- introspection helpers ------------------------------------------------------------
 
-    def _unit_class(self, unit: str | None) -> str | None:
-        """The CLASS tag of a matched unit (belief unit, else its response unit)."""
-        if not unit:
-            return None
-        b = self.mem.beliefs.get(unit)
-        if b and "CLASS" in b.fields:
-            return b.fields["CLASS"]
-        ru = self.dialogue._response_unit(unit)
-        if ru and "CLASS" in ru.fields:
-            return ru.fields["CLASS"]
-        return None
+    def unit_sentences(self, unit):
+        """The remaining NORMAL sentences of a ^H unit's response set."""
+        b = self.getprop(unit, "RESP")
+        if is_nil(b):
+            return []
+        sents = self.getprop(b, "NORMAL")
+        return [s for s in (sents or [])]
 
-    def _affect(self, analysis) -> str | None:
-        """AFFECT (pmem5): apply jumps, force the emotion-driven intention."""
-        a = self.model.affect
-        if any(w in self._w2sens for w in analysis.words):
-            self.model.ajump = max(self.model.ajump or 0.0, 0.2)
-        self.model.raise_affect()
+    def beliefs_held(self) -> list:
+        return sorted(a for a in self.plist.atoms_with("TRUTH") if truthy(self.getprop(a, "TRUTH")))
 
-        forced = None
-        if a.fear > 18 or a.anger > 18.8:
-            self.inference.add_to_intent("PEXIT2", 10)
-        strong = self.model.version == "STRONG" and (
-            a.hurt > 7 or (self.model.hjump is not None and self.model.hjump >= 0.1))
-        mild = self.model.version == "MILD" and a.hurt > 8
-        if strong or mild:
-            self.inference.add_to_intent("PPARANOIA", 5)
-            self._paranoia_project()
-            forced = "PPARANOIA"
-        elif (
-            (self.model.fjump is not None and self.model.fjump >= 0.01)
-            or (self.model.ajump is not None and self.model.ajump >= 0.01)
-            or a.fear > 14 or a.anger > 14 or self.model.topic == "STRONGFEELINGS"
-        ):
-            self.inference.add_to_intent("PSTRONGFEEL", 5)
-            forced = "PSTRONGFEEL"
-        return forced
-
-    def _paranoia_project(self) -> None:
-        """PARANOIA (pmem5): project self-shame onto distrust of the doctor."""
-        project = {"LYING": "*DHONEST", "LOSER": "*DSOCIABLE",
-                   "CRAZY": "DABNORMAL", "DUMB": "*DCHELP"}
-        self.inference.assert2("*DTRUSTWORTHY")
-        for src in self.inference.parbel:
-            if src in project:
-                self.inference.assert2(project[src])
-        self.inference.parbel = []
-
-    def _do_intent(self, intent: str, analysis, is_q: bool) -> str | None:
-        """DOINTENT dispatch: run the chosen intention's routine (pmem5)."""
-        cls = self._unit_class(analysis.unit)
-        a = self.model.affect
-
-        if intent == "PPARANOIA":
-            if a.hurt > 10:
-                a.hurt = 10 + (a.hurt - 10) * 3 / 5
-            group = _PARANOIA_GROUP.get(cls)
-            if group is None:
-                group = self._diffuse_mode(is_q, paranoid=True)
-            self.inference.add_to_intent("PEXIT", 1)
-            return self.dialogue.choose(group)
-
-        if intent == "PSTRONGFEEL":
-            group = _STRONGFEEL_GROUP.get(cls)
-            if group is None and (a.anger > 14 or a.fear > 14):
-                group = self._diffuse_mode(is_q, paranoid=False)
-            return self.dialogue.choose(group) if group else None
-
-        if intent in ("PEXIT", "PEXIT2"):
-            if a.anger > 9:
-                group = "MADEXIT"
-            elif a.fear > 9:
-                group = "FEAREXIT"
-            else:
-                group = "EXIT"
-            self.ended = True
-            return self.dialogue.choose(group)
-
-        if intent == "PMAFIA":
-            group = "PANIC" if a.fear > 10 else "PROBE"
-            self.inference.add_to_intent("PMAFIA", -2)
-            return self.dialogue.choose(group)
-
-        if intent == "PGAMES":
-            self.inference.add_to_intent("PGAMES", -2)
-            return self.dialogue.choose("GAMES")
-        if intent == "PFACTS":
-            self.inference.add_to_intent("PFACTS", -2)
-            return self.dialogue.choose("MOVEON")
-        if intent == "PSELF":
-            self.inference.add_to_intent("PSELF", -3)
-            return self.dialogue.choose("IYOUME")
-        # PINTERACT / PHELP / PTELL / PCONFIRM: no direct utterance here — let the
-        # literal answer stand (PARRY keeps interviewing) but bootstrap PHELP.
-        if intent == "PINTERACT" and self.model.flare == "INIT":
-            self.inference.add_to_intent("PHELP", 5)
-        return None
-
-    def _diffuse_mode(self, is_q: bool, paranoid: bool) -> str:
-        """FEARMODE/ANGERMODE: diffuse high emotion into a reply group."""
-        a = self.model.affect
-        if a.fear >= 14:
-            if a.fear > 18.4:
-                self.ended = True
-                return "EXIT"
-            return "THREATQ" if is_q else "AFRAID"
-        return "ANGER" if a.anger > 17.5 else "HOSTILEREPLIES"
-
-    def _exhaustion_recovery(self) -> str | None:
-        """REACT3: a set ran out — tell the topic's story, else EXHAUSTER.
-
-        EXHAUSTER counts exhaustions, nudges anger, and ends the interview with
-        MADEXIT on the ninth; otherwise fall back to the "I already told you"
-        EXHAUST responses (pmem2 EXHAUSTER, opar3 CHOOSE 'EXHAUST).
-        """
-        story = D.STORY.get(self.model.topic) or D.STORY.get(self.model.flare)
-        if story:
-            for u in story:
-                r = self.dialogue.answer_unit(u)
-                if r:
-                    return r
-        self.exhaust_count += 1
-        self.model.ajump = max(self.model.ajump or 0.0, 0.15)
-        if self.exhaust_count >= 9:
-            self.ended = True
-            return self.dialogue.choose("MADEXIT") or self.dialogue.choose("BYE")
-        return self.dialogue.choose("EXHAUST") or self.dialogue.choose("QREPLIES")
-
-    def _keyword_fallback(self, words: list[str]) -> str | None:
-        """SKEYWD: delusion words, then flare words, then topic keyword scan."""
-        # delusion already handled in _scan_affect via delusion_reference;
-        # here, if a flare is active, tell its story line
-        if self.model.flare != "INIT":
-            story = D.STORY.get(self.model.flare)
-            if story:
-                return self.dialogue.answer_unit(story[0])
-        # topic keyword scan (KEYWD): match a topic word -> its story
-        w2t = D.word_to_topic()
-        for w in words:
-            t = w2t.get(w)
-            if t and t in D.STORY:
-                return self.dialogue.answer_unit(D.STORY[t][0])
-        return None
+    def intent_scores(self) -> dict:
+        return {i: self.get0(i, "NTRUTH") for i in (self.INTLIST or [])}

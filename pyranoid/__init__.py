@@ -1,34 +1,23 @@
-"""mc-parry: a modern Python port of Kenneth Colby's 1972 PARRY.
+"""pyranoid: Kenneth Colby's 1972 PARRY, ported routine for routine.
 
-Data is loaded from files recovered from the 1974 Stanford WAITS disk image
-(see ../recovered/). This package currently provides the PDAT semantic-memory
-loader; the paranoid model and pattern front-end follow.
+The package is one LISP-style image (:class:`Parry`) built from the original
+source files -- the pattern front-end decompiled from ``front.lap``, the
+memory and intention layers from ``pmem``, ``pmem2``, ``pmem4``, ``pmem5``,
+the flare/delusion model from ``opar3`` -- running on the original data
+tables and the response memory recovered from a 1974 WAITS disk image.
 """
 
-from pyranoid.data import Lexicon
-from pyranoid.frontend import FrontEnd
-from pyranoid.memory import Dialogue
-from pyranoid.model import Model
-from pyranoid.parry import Parry
-from pyranoid.pdat import (
-    BeliefUnit,
-    DottedPair,
-    Memory,
-    Response,
-    ResponseUnit,
-    load_pdat,
-)
+from pyranoid.lisp import Lisp, LispError, Pair, Plist, read_file, read_forms
+from pyranoid.parry import DATA_DIR, Parry, Turn
 
 __all__ = [
-    "BeliefUnit",
-    "Dialogue",
-    "DottedPair",
-    "FrontEnd",
-    "Lexicon",
-    "Memory",
-    "Model",
+    "DATA_DIR",
+    "Lisp",
+    "LispError",
+    "Pair",
     "Parry",
-    "Response",
-    "ResponseUnit",
-    "load_pdat",
+    "Plist",
+    "Turn",
+    "read_file",
+    "read_forms",
 ]

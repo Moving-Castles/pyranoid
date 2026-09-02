@@ -1,33 +1,48 @@
-"""Summarise a decoded PDAT file: python -m pyranoid.inspect [path-to-pdat.txt]
+"""Summarise the loaded PARRY image: python -m pyranoid.inspect
 
-Defaults to the recovered PDATZ. Prints counts, data quirks, and a few sample
-belief -> response mappings so you can eyeball that the load worked.
+Prints what the data files contributed to the property-list memory and the
+authentic quirks of the 1974 data that the loader surfaces rather than hides.
 """
 
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
-from pyranoid.data import DATA_DIR
-from pyranoid.pdat import load_pdat
-
-DEFAULT = DATA_DIR / "pdatz.txt"
+from pyranoid.lisp import read_file
+from pyranoid.parry import DATA_DIR, Parry
 
 
 def main(argv: list[str]) -> int:
-    path = Path(argv[1]) if len(argv) > 1 else DEFAULT
-    if not path.exists():
-        print(f"no such file: {path}", file=sys.stderr)
-        return 1
-    mem = load_pdat(path)
-    print(f"loaded {path.name}")
-    print(f"  belief units (#B): {len(mem.beliefs)}")
-    print(f"  response units (#E): {len(mem.responses)}")
-    print(f"  duplicate ids: {mem.duplicate_names or 'none'}")
-    print(f"  dangling RESP refs: {mem.dangling_responses() or 'none'}")
-    total = sum(len(r.normal) for r in mem.responses.values())
-    print(f"  candidate response sentences: {total}")
+    p = Parry(seed=0)
+    units = [a for a in p.plist.atoms_with("BONDVALUE")]
+    sets = [a for a in p.plist.atoms_with("NORMAL")]
+    sentences = sum(len(p.getprop(a, "NORMAL") or []) for a in sets)
+    with_sf = [a for a in units if p.getprop(a, "SF")]
+    with_fx = [a for a in units if p.getprop(a, "FX")]
+    with_nn = [a for a in units if p.getprop(a, "NN")]
+    print(f"data directory: {DATA_DIR}")
+    print(f"  input units (#B):      {len(units)}")
+    print(f"  response sets (#E):    {len(sets)}  ({sentences} sentences)")
+    print(f"  semantic functions:    SF {len(with_sf)}, FX {len(with_fx)}, NN {len(with_nn)} (NN is never run)")
+    print(f"  simple patterns:       {len(p.SPTABLE)}")
+    print(f"  compound patterns:     {len(p.CPTABLE)}")
+    print(f"  synonyms:              {len(p.plist.atoms_with('SYNONM'))}")
+    print(f"  beliefs:               {len(p.plist.atoms_with('NTRUTH'))}  intentions: {len(p.INTLIST)}")
+    print(f"  theorems:              {len(p.plist.atoms_with('THEOREM'))}")
+    print(f"  flare sets:            {p.getprop('FLARELIST', 'SETS')}")
+    print("quirks of the recovered data:")
+    for e in reversed(p.ERROR_LIST or []):
+        print(f"  load error: {e[0]} {e[1]}")
+    dangling = [(a, p.getprop(a, "RESP")) for a in units
+                if p.getprop(a, "RESP") and not p.getprop(p.getprop(a, "RESP"), "INCORE")]
+    print(f"  dangling RESP references: {dangling}")
+    missing_groups = [(f[1], f[2]) for f in read_file(DATA_DIR / "pdatb")
+                      if f[3] == "IND" and not p.getprop(f[2], "INCORE")]
+    print(f"  reply groups without a unit in PDAT: {missing_groups}")
+    missing_patterns = sorted({v for v in p.SPTABLE.values() if v[0] == "H" and not p.getprop(v, "INCORE")
+                               and not p.getprop(v, "MEQV")})
+    print(f"  pattern targets in neither PDAT nor CHANGE: {missing_patterns}")
+    print(f"  front-end tables missing from the source tree: {p.missing_tables}")
     return 0
 
 
