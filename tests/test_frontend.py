@@ -78,3 +78,31 @@ def test_coverage_is_reasonable(fe, mem):
             if b and b.resp in mem.responses:
                 hit += 1
     assert hit / total > 0.7
+
+
+def test_negation_flips_unit(fe, mem):
+    # "are you afraid" -> afraid unit; "are you not afraid" -> its negation
+    pos = fe.analyse("are you afraid").unit
+    neg = fe.analyse("are you not afraid").unit
+    assert pos and neg and pos != neg
+    assert pos in fe.negate_map and fe.negate_map[pos] == neg
+
+
+def test_suffix_stripping_reaches_root(fe):
+    # an inflected form reduces toward a recognised root
+    assert "CHEAT" in fe.canonise("were you cheated")
+
+
+def test_fragment_segmentation(fe):
+    # a stoppr verb (THINK) drops the framing clause; startr (WHY) begins a fragment
+    frags = fe.segment(["DO", "YOU", "THINK", "A", "MAFIA", "BE", "IN", "YOU"])
+    assert ["DO", "YOU"] not in frags          # framing clause dropped
+    assert any("MAFIA" in f for f in frags)
+
+
+def test_work_question_matches_job(fe, mem):
+    # regression the fragmenter fixed: "for a living" reaches the work unit
+    a = fe.analyse("what do you do for a living")
+    assert a.unit in mem.beliefs
+    e = mem.response_for(a.unit)
+    assert e and any("SEARS" in r.words or "WORK" in r.words for r in e.normal)

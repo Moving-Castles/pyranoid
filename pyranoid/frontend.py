@@ -53,6 +53,33 @@ class FrontEnd:
         for cp in lex.cpats:
             if cp.units:
                 self._cpats_by_first.setdefault(cp.units[0], []).append(cp)
+        # suffix rules, longest suffix first (DE_SUFFIX)
+        self._suffixes = sorted(lex.suffix + lex.suffix_alf,
+                                key=lambda a: -len(a.affix))
+        # negation map: matched unit -> its opposite-meaning unit (negate.pat)
+        self.negate_map = {a: b for a, b in lex.negate if a and b}
+        # words that flag a fragment as negated (flags.alf has NOT)
+        self._recognised = set(lex.dictio) | set(lex.synonyms) | set(lex.irregular)
+
+    def _is_recognised(self, w: str) -> bool:
+        return w in self._recognised
+
+    def _de_suffix(self, w: str) -> list[str] | None:
+        """Strip a known suffix to reach a recognised root (front.lap DE_SUFFIX).
+
+        Only fires on words not otherwise recognised, so it is a last resort.
+        Replacement-word actions (N'T -> NOT, 'S -> IS, 'D -> WOULD) are applied;
+        part-of-speech recasts (^X…) and tense tags are dropped for matching.
+        """
+        for suf in self._suffixes:
+            aff = suf.affix
+            if len(w) > len(aff) + 1 and w.endswith(aff):
+                root = w[: len(w) - len(aff)]
+                if self._is_recognised(root):
+                    extra = [a for a in suf.action
+                             if a.isupper() and not a.startswith("@X@")]
+                    return [root, *extra]
+        return None
 
     # -- word canonicalisation ---------------------------------------------
 
@@ -80,6 +107,14 @@ class FrontEnd:
             if nxt == cur:
                 break
             cur = nxt
+        # last resort: strip a suffix to reach a recognised root
+        if cur == w and not self._is_recognised(w):
+            stripped = self._de_suffix(w)
+            if stripped is not None:
+                out = []
+                for x in stripped:
+                    out.extend(self._canon_word(x) if x != w else [x])
+                return out
         return [cur]
 
     def canonise(self, text: str) -> list[str]:
@@ -130,6 +165,28 @@ class FrontEnd:
                     best, best_len = sp, len(sp.words)
         return best.target if best else None
 
+    def segment(self, words: list[str]) -> list[list[str]]:
+        """Split a canonicalised sentence into fragments (front.lap SEGMENT).
+
+        A word in startr.alf begins a new fragment; a word in stoppr.alf ends the
+        current one, dropping the framing verb ("do you THINK the mafia..." keeps
+        "the mafia..."). Returns the list of non-empty fragments.
+        """
+        frags: list[list[str]] = []
+        cur: list[str] = []
+        for w in words:
+            if w in self.lex.stoppr:
+                cur = []                      # discard the framing clause so far
+                continue
+            if w in self.lex.startr and cur:
+                frags.append(cur)
+                cur = [w]
+            else:
+                cur.append(w)
+        if cur:
+            frags.append(cur)
+        return frags or [words]
+
     def reduce_cpats(self, units: list[str]) -> list[str]:
         """Combine adjacent units via compound patterns until stable."""
         changed = True
@@ -150,16 +207,24 @@ class FrontEnd:
 
     def analyse(self, text: str) -> Analysis:
         words = self.canonise(text)
-        # For a first reconstruction we match one unit over the whole sentence,
-        # then attempt compound reduction against any earlier context unit.
-        unit = self.match_spats(words)
-        units = [unit] if unit else []
+        # Match each fragment, then reduce the unit sequence with compound
+        # patterns. Fall back to a whole-sentence match if fragmenting finds
+        # nothing (keeps single-clause questions matching as before).
+        frags = self.segment(words)
+        units = [u for u in (self.match_spats(f) for f in frags) if u]
+        if not units:
+            whole = self.match_spats(words)
+            units = [whole] if whole else []
         units = self.reduce_cpats(units) if len(units) > 1 else units
         final = None
         for u in units:
             if u and u.startswith("H"):
-                final = u
-        if final is None and unit and unit.startswith("H"):
-            final = unit
+                final = u  # last H-unit wins (closest to sentence end)
+        if final is None and units and units[-1] and units[-1].startswith("H"):
+            final = units[-1]
+        # Negation: if the sentence carries NOT and the matched unit has an
+        # opposite-meaning unit (negate.pat), flip to it.
+        if final is not None and "NOT" in words and final in self.negate_map:
+            final = self.negate_map[final]
         return Analysis(raw=text, words=words, units=units, unit=final,
                         matched_pattern=None)

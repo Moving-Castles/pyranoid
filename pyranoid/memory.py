@@ -25,6 +25,27 @@ from pyranoid.pdat import Memory, ResponseUnit
 
 _DEFPROP = re.compile(r"\(DEFPROP\s+(\S+)\s+(\S+)\s+(IND|UNIT)\)")
 
+# PARRY's anaphor synonym groups (!ALLANAPHS, pmem2). A follow-up word resolves
+# through the group it belongs to, so "there" and "where" share a referent.
+_ALLANAPHS = [
+    ("WHO",), ("THEY", "HE", "SHE", "WE"), ("HE",), ("SHE",), ("WE",),
+    ("THERE", "WHERE"), ("HERE", "THERE", "WHERE"), ("WHERE",),
+    ("THEN", "WHEN"), ("WHEN", "HOW_LONG"), ("HOW_LONG",), ("IT",), ("WHAT",),
+    ("YOU_DO",), ("THEY_DO",), ("HOW_MUCH",), ("HOW_KNOW",), ("GO_ON",),
+    ("ELAB",), ("WHY",), ("HOW",), ("YES",), ("NO",),
+]
+
+
+def _anaph_synonyms(word: str) -> list[str]:
+    """The word plus any anaphors in the same !ALLANAPHS group (word first)."""
+    out = [word]
+    for group in _ALLANAPHS:
+        if word in group:
+            for w in group:
+                if w not in out:
+                    out.append(w)
+    return out
+
 
 class Dialogue:
     """Selects PARRY's next utterance from the recovered memory."""
@@ -143,11 +164,15 @@ class Dialogue:
     # -- anaphora -----------------------------------------------------------
 
     def resolve_anaphor(self, word: str) -> str | None:
-        """Resolve a follow-up interrogative against the current !ANAPHLIST."""
-        target = self.anaph.get(word)
-        if target is None:
-            return None
-        # target may be a unit id or a concept name
-        if target in self.mem.beliefs or target in self.mem.responses:
-            return target
-        return self.concept_unit.get(target, target)
+        """Resolve a follow-up interrogative against the current !ANAPHLIST.
+
+        The query word is expanded through PARRY's anaphor synonym groups
+        (!ALLANAPHS, pmem2) so e.g. "there"/"where" resolve to the same referent.
+        """
+        for candidate in _anaph_synonyms(word):
+            target = self.anaph.get(candidate)
+            if target is not None:
+                if target in self.mem.beliefs or target in self.mem.responses:
+                    return target
+                return self.concept_unit.get(target, target)
+        return None
