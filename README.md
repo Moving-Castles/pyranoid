@@ -127,8 +127,8 @@ recovery are documented at the sources below.
 
 - **PARRY** — Kenneth M. Colby et al., Stanford AI Lab, 1972. The original source
   is public domain per the CMU AI Repository.
-- Colby, K. M., Weber, S., Hilf, F. D. "Artificial paranoia." *Artificial
-  Intelligence* 2(1), 1971.
+- Colby, K. M., Weber, S., Hilf, F. D. ["Artificial Paranoia."](https://courses.cs.umbc.edu/671/fall12/resources/colby_71.pdf)
+  *Artificial Intelligence* 2 (1971), 1–25. The paper describing PARRY's model.
 - Colby, K. M. *Artificial Paranoia: A Computer Simulation of Paranoid Processes.*
   Pergamon Press, 1975.
 - Original source: [CMU AI Repository — classics/parry](https://www.cs.cmu.edu/afs/cs/project/ai-repository/ai/areas/classics/parry/)
