@@ -28,6 +28,15 @@ def test_against_the_1974_program_in_the_emulator():
     assert rows[-1]["affect"]["fear"] == 14.48 and rows[-1]["affect"]["anger"] == 10.85
 
 
+def test_against_the_full_1974_interview():
+    # the whole ALL.DOC script put to PARRY.DMP (its greeting line was swallowed
+    # by the start-up prompts, so the record starts at the second line)
+    _, rows = replay("waits74-love-full")
+    counts = summarise(rows)
+    assert len(rows) == 40 and counts["absent"] == 0     # every 1974 sentence is in the memory
+    assert counts["exact"] + counts["same set"] >= 12
+
+
 def test_the_1972_rfc_439_sentences_are_mostly_in_the_1974_memory():
     _, rows = replay("rfc439")
     counts = summarise(rows)
