@@ -198,3 +198,22 @@ def test_putprop_on_a_list_is_inert():
     assert pl.get(["MEASURE", "FEAR", 14], "TH2") is NIL
     pl.put(NIL, "H4804", "FAMLY")
     assert pl.get(NIL, "FAMLY") == "H4804"
+
+
+def test_get_on_a_cons_walks_its_cdr_as_lisp_1_6_did():
+    pl = Plist()
+    pl.put("DAD", "FAMILY", "SET")
+    pl.put("DAD", T, "FLAGS")
+    # a list is searched as a property list from its second element
+    assert pl.get(["X", "SET", "FAMILY"], "SET") == "FAMILY"
+    assert pl.get(["X", "SET", "FAMILY"], "WORDS") is NIL
+    # an assoc pair: the word atom's plist is walked out of phase -> NIL ...
+    assert pl.get(Pair("DAD", "DAD"), "SET") is NIL
+    # ... unless a property VALUE happens to be the indicator: then the
+    # following indicator (or PNAME, at the end) comes back
+    pl.put("W", "SET", "FOO")
+    pl.put("W", 1, "BAR")
+    assert pl.get(Pair("K", "W"), "SET") == "PNAME"
+    pl.put("W", "SET", "BAZ")
+    assert pl.get(Pair("K", "W"), "SET") == "BAR"
+    assert pl.get(Pair("K", NIL), "SET") is NIL

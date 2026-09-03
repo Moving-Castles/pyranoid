@@ -511,8 +511,33 @@ class Plist:
 
     def get(self, atom_, prop):
         if isinstance(atom_, (list, Pair)):
-            return NIL
+            return self._get_of_cons(atom_, prop)
         return self.props.get(_key(atom_), {}).get(prop)
+
+    def _get_of_cons(self, x, prop):
+        """GET applied to a cons.  LISP 1.6's GET (disassembled from the 1974
+        core image) takes CDR of its argument without testing for an atom and
+        walks the result as (indicator value ...) pairs with EQ.  On a list
+        that is a property-list search of its tail.  On an assoc pair
+        (KEY . WORD) it walks the word atom's cell and property list out of
+        phase: the values are compared with the indicator and the element
+        after a match -- the next indicator, or PNAME -- is returned, which in
+        practice means NIL.  LASTWORD relies on this."""
+        rest = x.cdr if isinstance(x, Pair) else x[1:]
+        if rest is None or rest == []:
+            return NIL
+        if isinstance(rest, list):
+            for i in range(0, len(rest) - 1, 2):
+                if rest[i] == prop:
+                    return rest[i + 1]
+            return NIL
+        if isinstance(rest, Pair):
+            return NIL
+        pairs = list(self.props.get(_key(rest), {}).items())[::-1]  # PUTPROP pushes on the front
+        for k, (_ind, val) in enumerate(pairs):
+            if isinstance(val, str) and val == prop:
+                return pairs[k + 1][0] if k + 1 < len(pairs) else "PNAME"
+        return NIL
 
     def put(self, atom_, value, prop):
         if isinstance(atom_, (list, Pair)):

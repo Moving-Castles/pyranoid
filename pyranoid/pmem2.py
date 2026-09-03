@@ -391,7 +391,10 @@ class Pmem2Mixin:
             for i in to_list(self.getprop("SENSITIVELIST", "WORDS")):
                 a = assoc(i, self.INPUTQUES)
                 if truthy(a):
-                    a = self.getprop(car(a), "SET")
+                    # GET(A, 'SET) on the pair itself: LISP 1.6's GET walks the
+                    # word's property list out of phase and yields NIL
+                    a = self.getprop(a, "SET")
+                if truthy(a):
                     break
         if w == "COMPLEMENT":
             w = T
@@ -401,7 +404,7 @@ class Pmem2Mixin:
         if w == "SPEC_CONCEPT":
             w = T
             a = assoc("LOOKS", self.INPUTQUES)
-            a = car(self.getprop(car(a), "WORDS")) if truthy(a) else "LOOKS"
+            a = self.getprop(a, "WORDS") if truthy(a) else "LOOKS"   # GET on the pair, as above
         if truthy(a):
             return [a]
         if w is T or is_nil(w):

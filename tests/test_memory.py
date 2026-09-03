@@ -156,3 +156,29 @@ def test_paranoid_reply_groups_are_absent_from_the_1974_data(p):
     absent = [f[1] for f in read_file(DATA_DIR / "pdatb") if f[3] == "IND" and not p.getprop(f[2], "INCORE")]
     assert absent == ["PACCUSE", "PDISTANCE", "PHOSTILEREPLIES", "PANGER", "PPERS", "PCAUTION",
                       "PAFRAID", "PTHREATQ", "PBELIEVEREPLIES", "PALOOF"]
+
+
+# --- SETUPSTL / LASTWORD ------------------------------------------------------
+
+def test_sensitive_words_are_collected_into_one_list(p):
+    # MLISP's FOR ... COLLECT appends: the list is flat (as in the 1974 core image)
+    assert p.getprop("SENSITIVELIST", "WORDS") == [
+        "LOOKS", "SEXLIFE", "SEX", "GIRLS", "FAMILY", "DAD", "EDUCATION", "SCHOO",
+        "RELIGION", "GOD", "PRAY"]
+
+
+def test_lastword_gets_from_the_assoc_pair(p):
+    # LASTWORD applies GET to the (WORD . WORD) pair itself; LISP 1.6's GET
+    # walks the word's property list out of phase and finds nothing
+    saved = p.INPUTQUES
+    try:
+        p.INPUTQUES = [Pair("SEX", "SEX")]
+        assert p.lastword("SENSITIVELIST") == ["PROBLEMS"]
+        p.INPUTQUES = [Pair("LOOKS", "LOOKS")]
+        assert p.lastword("SPEC_CONCEPT") == ["PROBLEMS"]
+        p.INPUTQUES = NIL
+        assert p.lastword("SPEC_CONCEPT") == ["LOOKS"]
+        p.INPUTQUES = [Pair("GOOD", "NICE")]
+        assert p.lastword("COMPLEMENT") == ["NICE"]
+    finally:
+        p.INPUTQUES = saved

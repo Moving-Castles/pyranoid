@@ -361,8 +361,10 @@ class PmemMixin:
     def setupstl(self):
         """SETUPSTL: story back-pointers (STORYNAME) and the sensitive words."""
         c = T
-        a = [self.getprop(i, "WORDS") for i in to_list(self.getprop("SENSITIVELIST", "SETS"))]
-        self.putprop("SENSITIVELIST", a or NIL, "WORDS")
+        a = NIL   # FOR ... COLLECT appends the sets' word lists into one list
+        for i in to_list(self.getprop("SENSITIVELIST", "SETS")):
+            a = append(a, self.getprop(i, "WORDS"))
+        self.putprop("SENSITIVELIST", a, "WORDS")
         a = cons("DELNSET", append(self.getprop("FLARELIST", "SETS"),
                                    self.getprop("SETLIST", "SETS")))
         for i in to_list(a):
