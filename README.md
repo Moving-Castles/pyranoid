@@ -32,7 +32,7 @@ Python 3.10+. With [uv](https://docs.astral.sh/uv/):
 uv run python -m pyranoid                 # interview (STRONG version)
 uv run python -m pyranoid --trace         # with the original's per-turn diagnostics
 uv run python -m pyranoid --version MILD  # STRONG | MILD | WEAK
-uv run python -m pyranoid.inspect         # what the data files loaded, and their quirks
+uv run python -m pyranoid.inventory         # what the data files loaded, and their quirks
 ```
 
 Or `pip install -e .` and run `parry`. As in 1974 the interviewer speaks
@@ -93,7 +93,7 @@ core image (below), so this is the front-end that ran.
   you" exhaust replies. Five pattern targets are in neither `PDAT` nor
   `CHANGE`; they are targets in the 1974 binary pattern tables too, so that
   breakage is original (the 1975 FIX.DOC notes two of them).
-  `python -m pyranoid.inspect` lists all of this.
+  `python -m pyranoid.inventory` lists all of this.
 - Terminal, disk and window I/O (the DIA and ERR files, the display windows,
   the learning mode that wrote new patterns) is reduced to the `Turn` record
   and the `--trace` printout; the learning-mode routines are ported but have

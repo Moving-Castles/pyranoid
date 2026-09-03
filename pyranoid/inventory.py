@@ -1,4 +1,4 @@
-"""Summarise the loaded PARRY image: python -m pyranoid.inspect
+"""Summarise the loaded PARRY image: python -m pyranoid.inventory
 
 Prints what the data files contributed to the property-list memory and the
 authentic quirks of the 1974 data that the loader surfaces rather than hides.

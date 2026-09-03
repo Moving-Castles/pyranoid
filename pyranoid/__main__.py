@@ -1,6 +1,6 @@
 """`python -m pyranoid` — launch an interactive PARRY interview.
 
-For the PDAT memory summary instead, run `python -m pyranoid.inspect [path]`.
+For the PDAT memory summary instead, run `python -m pyranoid.inventory [path]`.
 """
 
 from __future__ import annotations
