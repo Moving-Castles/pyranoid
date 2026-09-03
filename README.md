@@ -79,41 +79,83 @@ DAD/MOM/FAMLY set a family flag, THEY is replaced by its anaphoric referent
 from the memory); filler units are dropped; compound patterns combine the
 fragments' units, again exactly or minus one unit. Misspellings are repaired
 by deleting a letter, substituting a keyboard neighbour, or transposing.
+Every routine of `front.lap` assembles to exactly the code found in the 1974
+core image (below), so this is the front-end that ran.
 
 ### What the port does not have
 
-- `DAD.PAT` and `MOM.PAT`, two pattern-redirect tables the front-end loads, are
-  not in the surviving source tree (`FAMLY.PAT` is, and is used as the fall-back
-  exactly as MATCH does).
 - The 1974 `PDAT` lacks the ten paranoid-mode reply groups that `pdatb` names
-  (`PANGER`, `PAFRAID`, `PACCUSE`, …). The code chooses them; the memory has no
-  unit to say, so — as the original code dictates — the reply comes from
-  REACT3's recovery: the topic's story, or the "I have already told you"
-  exhaust replies. Five pattern targets are likewise in neither `PDAT` nor
-  `CHANGE`. `python -m pyranoid.inspect` lists all of this.
+  (`PANGER`, `PAFRAID`, `PACCUSE`, …). The November 1974 core image shows they
+  were not in that year's `pdatb` either: they were added to the source later,
+  and the `PDAT` that went with them did not survive. The code chooses them;
+  the memory has no unit to say, so — as the original code dictates — the reply
+  comes from REACT3's recovery: the topic's story, or the "I have already told
+  you" exhaust replies. Five pattern targets are in neither `PDAT` nor
+  `CHANGE`; they are targets in the 1974 binary pattern tables too, so that
+  breakage is original (the 1975 FIX.DOC notes two of them).
+  `python -m pyranoid.inspect` lists all of this.
 - Terminal, disk and window I/O (the DIA and ERR files, the display windows,
   the learning mode that wrote new patterns) is reduced to the `Turn` record
   and the `--trace` printout; the learning-mode routines are ported but have
-  no operator to answer their prompts.
+  no operator to answer their prompts. The original's end-of-input characters
+  were carriage return and the SAIL altmode `}`; the port's are newline and
+  escape.
 - `RANDOM` used the run-time clock; here it is a seeded generator.
+
+### Checked against the 1974 core image
+
+`PARRY.DMP` (8 November 1974, recovered with the data files) is the LISP core
+image of the running program, saved after every table had been loaded.
+Decoding its heap — the file starts at location 74₈, an atom is a cell with
+777777 in its left half, a small integer is an address counted from 577777₈ —
+made it possible to check the port against the original in memory:
+
+- Every table INIT_DICTIO puts on property lists (STARTR, STOPPR, FLAGS,
+  FILLER, IRREG, SUFFIX, IDIOM, NEGATE, FAMLY, NEARBY) and every property
+  that `rdata`, `pdatb`, `bel` and `inf` establish come out identical in the
+  port; `DAD.PAT` and `MOM.PAT`, missing from the source tree, were read back
+  out of it (seven entries each, bundled as `dad.pat` / `mom.pat`). The
+  synonym table in the 5 November 1974 `ALL.PAR` binary is identical to the
+  port's; the pattern tables are identical but for two simple and two
+  compound patterns.
+- The CMU source tree is a later revision than the image: it adds those four
+  patterns, four idioms (`GOD DAMN`, `BE YOU SURE`, …), five theorems
+  (IF942–IF946), the ten paranoid reply groups and a few beliefs, and changes
+  the flare weights. 160 of the 247 compiled routines are the same code (every
+  routine of `front.lap` and `opar3` among them); the ones that differ are in
+  `pmem`, `pmem2`, `pmem4`, `pmem5` and `win` — ANDTHEN, REPLYR, REPETITION,
+  PPARANOIA, CHECKINPUT, AFFECT, INITPARAMS, the window code — which the
+  "authentic behaviour" list below reflects. The port follows the source.
+- LISP 1.6 semantics the port had assumed were confirmed from the image and
+  the SAILON 28.7 manual: `PROG2` returns its second argument (up to five are
+  allowed), READCH and EXPLODE return numbers for digit characters, integer
+  division truncates, a SPECIAL cell that compiled code created and nothing
+  assigned reads as NIL, and GET on a non-atom takes CDR first (LASTWORD,
+  below). `RANDOM` is not a LISP 1.6 function: it is PARRY's own `random.lap`.
 
 ### Authentic behaviour you may take for bugs
 
 These are in the original and are reproduced deliberately:
 
 - ANDTHEN assigns an unset local to `!LASTIN`/`!LASTOUT`, and REPETITION
-  compares a list entry with an atom, so repetition is never detected.
+  compares a list entry with an atom, so repetition is never detected (both
+  routines were rewritten after the 1974 image).
 - DELSTMT, when the delusion story is used up, clears DELFLAG and immediately
   sets it again, discarding the reply it chose.
-- Two `SF`s test a `SAID` property nothing sets. `(NOT FLARE)` in a theorem
+- Two `SF`s test a `SAID` property nothing sets: the 1974 REPLYR still called
+  a MARK_SAID that set it, and the later source dropped the call. LASTWORD
+  applies GET to an assoc pair; LISP 1.6's GET takes CDR without checking for
+  an atom and walks the word's property list out of phase, so the "sensitive
+  concept" and "looks" last words always come out as PROBLEMS. `(NOT FLARE)` in a theorem
   tests a belief named FLARE, not the variable. LEADON's `DELETE` of MAFIA from
   the delusion words discards its result. The `NN` properties on 13 units are
   loaded and never run (no code references them).
 - The calendar has no leap years after 1973 ("previous line should be fixed on
   Feb 29, 1976"), so weekdays drift for later dates.
-- The `PDAT` has one response set defined twice (`B5420`, the later definition
-  wins as PUTPROP would) and one input unit whose response set is never
-  defined (`H4897`).
+- The `PDAT` has one response set defined twice (`B5420`; the original located
+  records through the DSKLOC index, whose binary search finds the first
+  definition, so that is the one used and the second was never read) and one
+  input unit whose response set is never defined (`H4897`).
 
 ## Tests
 
@@ -121,7 +163,7 @@ These are in the original and are reproduced deliberately:
 uv run --with pytest python -m pytest tests/ -q
 ```
 
-75 tests: the LISP substrate, the decompiled front-end on the real tables,
+78 tests: the LISP substrate, the decompiled front-end on the real tables,
 the memory layer, and end-to-end interviews including the sample dialogue in
 Colby's own documentation.
 
