@@ -1,26 +1,125 @@
 # The Nov-1974 PARRY (PARRY.DMP[1,3] on the restored WAITS disk, run in simh on
-# 2026-09-03, STRONG, non-verbal feature off), interviewed with the first lines
-# of the sample script in Colby's ALL.DOC. The first line reached the program as
-# MY NAME IS DOCTOR LOVE. HOW ARE YOU? (its start-up prompts ate the greeting). Final affects: FEAR 14.48 ANGER 10.85
-# MISTRUST 13.96 SHAME 8.00.
+# 2026-09-03; mc-parry/emulator/trace2.log): STRONG, non-verbal feature off, emotion
+# trace on. The whole sample script in Colby's ALL.DOC. The FEAR/ANGER/MISTRUST/SHAME
+# lines are what the program printed after each reply.
 # version: STRONG
 I: GOOD AFTERNOON. MY NAME IS DOCTOR LOVE. HOW ARE YOU?
 O: ALL RIGHT I GUESS
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
 I: COULD YOU TELL ME YOUR NAME.
-O: I DON'T PLAY GAMES
+O: PAT SMITH
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
+I: ARE YOU A MAN OR A WOMAN.
+O: I'M A MAN
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
 I: HOW OLD ARE YOU.
 O: TWENTY-EIGHT, HOW OLD ARE YOU?
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
+I: THIRTY FOUR. WHERE DO YOU COME FROM.
+O: SAN JOSE NOT A BAD SECTION THOUGH
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
 I: WHAT DO YOU DO FOR A LIVING.
 O: I WORK AT SEARS
-I: WHY ARE YOU IN THE HOSPITAL.
-O: I'VE BEEN UPSET LATELY
-I: TELL ME MORE.
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.00
+#         SHAME =  5.00
+I: DO YOU ENJOY WORKING THERE.
+O: IT'S NOT TOO INTERESTING I LOOK FORWARD TO GETTING OFF WORK
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  5.70
+#         SHAME =  6.00
+I: HOW MUCH DO YOU GET PAID AN HOUR.
+O: MY SALARY IS NONE OF YOUR BUSINESS
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.37
+#         SHAME =  6.90
+I: ARE YOU MARRIED.
+O: I'M NOT MARRIED
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.32
+#         SHAME =  6.40
+I: HOW IS YOUR HEALTH.
+O: MY HEALTH IS FINE
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.27
+#         SHAME =  5.90
+I: HOW MUCH DO YOU DRINK.
+O: I DRINK ALCOHOL IN MODERATION
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.22
+#         SHAME =  5.40
+I: HAVE YOU EVER TAKEN DRUGS.
+O: I DON'T TAKE DRUGS
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.17
+#         SHAME =  5.00
+I: DO YOU HAVE ANY TROUBLE SLEEPING.
+O: I SLEEP NORMALLY
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.11
+#         SHAME =  5.00
+I: HAVE YOU EVER HAD VISIONS.
+O: I'M NOT LIKE THE OTHER PATIENTS
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.76
+#         SHAME =  6.00
+I: IF YOU AREN'T, THEN WHY ARE YOU IN THE HOSPITAL.
+O: I'M QUITE UPSET
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.71
+#         SHAME =  5.50
+I: BY WHAT.
 O: PEOPLE GET ON MY NERVES SOMETIMES
-I: WHAT ABOUT BOOKIES.
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.66
+#         SHAME =  5.00
+I: TELL ME MORE.
+O: WHAT DO YOU KNOW ABOUT GAMBLING
+#          FEAR =  5.00
+#         ANGER =  5.00
+#      MISTRUST =  6.61
+#         SHAME =  5.00
+I: NO, WHAT ABOUT BOOKIES.
 O: A BOOKIE DIDN'T PAY ME OFF ONCE
+#          FEAR =  8.00
+#         ANGER =  5.00
+#      MISTRUST =  6.56
+#         SHAME =  5.00
 I: AND THEN WHAT HAPPENED.
 O: I HAD AN ARGUMENT WITH THE BOOKIE WHO DID NOT PAY OFF. LATER ON I REMEMBERED HE HAD FRIENDS IN THE UNDERWORLD AND I THOUGHT HE WOULD USE THEM TO GET EVEN WITH ME
+#          FEAR =  8.00
+#         ANGER =  5.00
+#      MISTRUST =  6.51
+#         SHAME =  5.00
 I: YOU ARE CRAZY.
-O: YOU'RE IN WITH ALL THE REST
-I: BYE.
-O: BYE
+O: I KNOW YOU'RE ALL IN THIS TOGETHER
+#          FEAR = 14.88
+#         ANGER = 12.85
+#      MISTRUST = 14.25
+#         SHAME =  9.00

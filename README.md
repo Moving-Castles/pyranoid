@@ -165,7 +165,7 @@ uv run --with pytest python -m pytest tests/ -q
 uv run python -m pyranoid.replay            # the port against recorded interviews
 ```
 
-82 tests: the LISP substrate, the decompiled front-end on the real tables,
+83 tests: the LISP substrate, the decompiled front-end on the real tables,
 the memory layer, end-to-end interviews including the sample dialogue in
 Colby's own documentation, and the recorded interviews below.
 
@@ -177,14 +177,23 @@ and classes the reply: the same sentence, a sentence from the same response
 set (RANDOM's pick), a different set, or a sentence the 1974 memory does not
 contain at all.
 
-- `waits74-*` — the November 1974 program itself (`PARRY.DMP` on the restored
-  WAITS disk, run in simh; see `mc-parry/emulator/README.md`), on the same
-  `PDATZ` the port uses. This is the like-for-like reference: turns answered
-  through the front-end and a plain memory lookup come out identical; the
-  divergences are in the routines the CMU source revised after that image
-  (CHECKINPUT, AFFECT, PPARANOIA) — for instance the 1974 program answers a
-  request for its name with "I DON'T PLAY GAMES" — and in the sentence RANDOM
-  picks from a set.
+- `waits74-love`, `waits74-love-2`, `waits74-love-traced` — the November
+  1974 program itself (`PARRY.DMP` on the restored WAITS disk, run in simh
+  with the sample script of Colby's ALL.DOC; see `mc-parry/emulator/README.md`),
+  on the same `PDATZ` the port uses: with its emotion trace on, plain, and
+  with its internal trace on (the front-end and action lines it printed are
+  kept as comments). This is the like-for-like reference. The port's FEAR, ANGER, MISTRUST and SHAME agree
+  with the program's own trace after every one of the twenty turns, and
+  fourteen replies are the same sentence or a sentence RANDOM could have
+  picked from the same set. The six others are all one thing: where the
+  CMU source's PPARANOIA fires, its action table names the reply groups that
+  never got units (`PHOSTILEREPLIES`, …) so REACT3 recovers with a story or
+  exhaust line, and its flare lead comes one turn earlier; the 1974 image's
+  PPARANOIA table, read from the heap, is `((INSULT . ANGER) (CRAZY .
+  AVOIDANCE) (THREAT . PANIC) (ATTACK . LIE) (FEELINGS . LIE))` with no
+  fallback, so that program answered plainly instead. The two 1974 runs
+  differ from each other in four sentences and in the final affect levels,
+  which bounds what agreement can mean.
 - `rfc439` — PARRY talking to ELIZA's DOCTOR over the ARPANET, 18 September
   1972 (RFC 439). Forty-six of PARRY's 63 sentences are in the 1974 memory;
   the program and data were revised in between, so replies differ.
