@@ -19,8 +19,10 @@ def test_load_counts_and_quirks(p):
     units = p.plist.atoms_with("BONDVALUE")
     sets = p.plist.atoms_with("NORMAL")
     assert len(units) == 659 and len(sets) == 521
-    # the one duplicate #E record is logged, not hidden
-    assert [e[:2] for e in p.ERROR_LIST] == [["BAD INPUT-DOUBLE ENTRY", "B5420"]]
+    # the one duplicate #E record: the first definition is the one DSKLOC's
+    # index found, so it is kept and no double-entry error is raised
+    assert not p.ERROR_LIST and p.duplicate_records == ["B5420"]
+    assert p.getprop("B5420", "NORMAL")[0] == ["HERE", "ON", "THE", "WARD"]
     # the one dangling RESP reference
     assert p.getprop("H4897", "RESP") == "B0284" and not p.getprop("B0284", "INCORE")
 

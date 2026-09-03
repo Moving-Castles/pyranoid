@@ -82,15 +82,21 @@ class PmemMixin:
         if mk != -1:
             ff = text.find("\f", mk)
             text = text[ff + 1:] if ff != -1 else text[mk + 5:]
+        self.duplicate_records: list = []
         for form in read_forms(text):
-            if not isinstance(form, list):
+            if not isinstance(form, list) or car(form) not in ("#B", "#E"):
+                continue  # (*** comment ***)
+            if truthy(self.getprop(cadr(form), "INCORE")):
+                # The original read units on demand through DSKLOC's index,
+                # whose binary search lands on the first record of a name
+                # (verified for B5420 on ALL.PAR); a later duplicate is never
+                # read, so DISKREAD2 never reaches BEL/ENG's double-entry error.
+                self.duplicate_records.append(cadr(form))
                 continue
             if car(form) == "#B":
                 name = self.bel(cdr(form))
-            elif car(form) == "#E":
-                name = self.eng(cdr(form))
             else:
-                continue  # (*** comment ***)
+                name = self.eng(cdr(form))
             if truthy(name):
                 self.putprop(name, T, "INCORE")
 

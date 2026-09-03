@@ -36,6 +36,7 @@ def main(argv: list[str]) -> int:
     dangling = [(a, p.getprop(a, "RESP")) for a in units
                 if p.getprop(a, "RESP") and not p.getprop(p.getprop(a, "RESP"), "INCORE")]
     print(f"  dangling RESP references: {dangling}")
+    print(f"  PDAT records defined twice (first kept, as DSKLOC read it): {p.duplicate_records}")
     missing_groups = [(f[1], f[2]) for f in read_file(DATA_DIR / "pdatb")
                       if f[3] == "IND" and not p.getprop(f[2], "INCORE")]
     print(f"  reply groups without a unit in PDAT: {missing_groups}")
