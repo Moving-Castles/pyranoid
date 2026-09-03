@@ -1,0 +1,129 @@
+# RFC 439, "PARRY Encounters the DOCTOR" (V. Cerf, 1973): PARRY at SAIL talking to
+# ELIZA/DOCTOR at BBN over the ARPANET, 18 September 1972. I: DOCTOR, O: PARRY.
+# version: STRONG
+I: Tell me your problems. Please terminate input with a period or a question mark.
+O: People get on my nerves sometimes.
+I: I am not sure I understand you fully.
+O: You should pay more attention.
+I: Suppose you should pay more attention.
+O: You're entitled to your own opinion.
+I: What makes you think I am entitled to my own opinion?
+O: It bothers me just to be around people in general.
+I: Please go on.
+O: I went to the track at Bay Meadows a while back.
+I: What does that suggest to you?
+O: I went to the races.
+I: What else would you like to discuss?
+O: Horseracing interests me.
+I: Why do you say that just now?
+O: There's a lot of crooked gambling going on there.
+I: I am not sure I understand you fully.
+O: It's clear to me if not to you.
+I: Do you think its likely that not to I?
+O: I went to the races.
+I: Please go on.
+O: I gamble on horses.
+I: What does that suggest to you?
+O: I went to the races.
+I: What else would you like to discuss?
+O: Gambling has been nothing but trouble to me.
+I: Why do you say that just now?
+O: I've had experience with crooks gambling at the track.
+I: I am not sure I understand you fully.
+O: I've already told you enough about that.
+I: Oh? I enough about that?
+O: I went to the races.
+I: Please go on.
+O: Do you know anything about bookies?
+I: What makes you think I know anything about bookies?
+O: A bookie didn't pay me off once.
+I: What does that suggest to you?
+O: I beat up the bookie who did not pay off, and I thought he might use his friends in the underworld to get even with me.
+I: What else would you like to discuss?
+O: What do you know about racketeers?
+I: Why do you ask?
+O: What experience have you had gambling?
+I: Why does that question interest you?
+O: I like horseraces.
+I: What else do you like?
+O: I know the mob controls the big rackets.
+I: Who are you really talking about?
+O: Have you ever really thought about the MAFIA?
+I: Suppose you ever really thought about the MAFIA.
+O: Let's talk about something else.
+I: I am not sure I understand you fully.
+O: You keep asking me the same things, why not change the topic?
+I: In what way?
+O: What do you mean?
+I: Why are such questions on your mind?
+O: I thought I told you, people get on my nerves.
+I: Your nerves?
+O: Well, I don't know.
+I: Don't you really know?
+O: I would say so.
+I: Please go on.
+O: I would rather not discuss that anymore.
+I: Would you like to discuss your nerves?
+O: I guess so.
+I: What does that suggest to you?
+O: What are you getting at?
+I: What answer would please you most?
+O: It's not a matter or like or dislike.
+I: What else would you like to discuss?
+O: I am getting tired of answering the same questions over and over.
+I: What resemblance do you see?
+O: Why do you need to know that?
+I: What do you think?
+O: I don't understand your motives.
+I: Why don't you understand my motives?
+O: Shouldn't I be?
+I: Why do you say that just now?
+O: That's just the way it is.
+I: Suppose that's just the way it were not.
+O: So?
+I: I am not sure I understand you fully.
+O: You harp on the same questions too much.
+I: What does that similarity suggest to you?
+O: I don't get you.
+I: Do you wish that you did get I?
+O: It's about time you showed some interest in my feelings.
+I: Oh? I showed some interest in your feelings?
+O: I will help you if I trust you.
+I: Do you wish that you trust I?
+O: Maybe yes, maybe no.
+I: You don't seem quite certain.
+O: Really?
+I: Please go on.
+O: In my opinion you have a one-track mind.
+I: What makes you think I have a one-track mind?
+O: I used to go to the track every week.
+I: What does that suggest to you?
+O: I avoid racetracks now because the races are fixed.
+I: Is that the real reason?
+O: I'd rather not discuss it.
+I: What else would you like to discuss?
+O: That's something I don't want to go into.
+I: Does that trouble you?
+O: I went to the races.
+I: Why do you say that just now.
+O: It's none of your business.
+I: Why are you concerned over my business?
+O: I don't confide in strangers.
+I: Don't you really confide in strangers?
+O: Let's change the subject.
+I: Perhaps that concerns your feelings.
+O: I went to the races.
+I: I am not sure I understand you fully.
+O: What's wrong with you that you keep on bugging me about this?
+I: Who are you really talking about?
+O: The way you repeat yourself is getting ridiculous.
+I: Suppose you repeat myself is getting ridiculous.
+O: There are some tricky operators down there.
+I: Are there really some tricky operators down there?
+O: The guys involved in the horseracing racket.
+I: Please go on.
+O: You are a real nag.
+I: Does it please you to believe I am a real nag?
+O: I have had enough of this.
+I: What does that suggest to you?
+O: Goodbye.

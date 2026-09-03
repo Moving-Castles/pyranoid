@@ -162,11 +162,36 @@ These are in the original and are reproduced deliberately:
 
 ```bash
 uv run --with pytest python -m pytest tests/ -q
+uv run python -m pyranoid.replay            # the port against recorded interviews
 ```
 
-78 tests: the LISP substrate, the decompiled front-end on the real tables,
-the memory layer, and end-to-end interviews including the sample dialogue in
-Colby's own documentation.
+82 tests: the LISP substrate, the decompiled front-end on the real tables,
+the memory layer, end-to-end interviews including the sample dialogue in
+Colby's own documentation, and the recorded interviews below.
+
+### Recorded interviews
+
+`pyranoid/data/transcripts/` holds every published PARRY dialogue we could
+find, and `python -m pyranoid.replay` feeds each interviewer line to the port
+and classes the reply: the same sentence, a sentence from the same response
+set (RANDOM's pick), a different set, or a sentence the 1974 memory does not
+contain at all.
+
+- `waits74-*` — the November 1974 program itself (`PARRY.DMP` on the restored
+  WAITS disk, run in simh; see `mc-parry/emulator/README.md`), on the same
+  `PDATZ` the port uses. This is the like-for-like reference: turns answered
+  through the front-end and a plain memory lookup come out identical; the
+  divergences are in the routines the CMU source revised after that image
+  (CHECKINPUT, AFFECT, PPARANOIA) — for instance the 1974 program answers a
+  request for its name with "I DON'T PLAY GAMES" — and in the sentence RANDOM
+  picks from a set.
+- `rfc439` — PARRY talking to ELIZA's DOCTOR over the ARPANET, 18 September
+  1972 (RFC 439). Forty-six of PARRY's 63 sentences are in the 1974 memory;
+  the program and data were revised in between, so replies differ.
+- `colby71-1` … `colby71-6` — the excerpts in Colby, Weber & Hilf,
+  "Artificial Paranoia" (1971). That model was Frank Smith, 28, a post-office
+  clerk; by 1974 he is Pat Smith at Sears, and most of the 1971 sentences are
+  not in the memory. They are kept for the record.
 
 ## Provenance
 
