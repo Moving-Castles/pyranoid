@@ -147,5 +147,12 @@ def test_gibberish_and_misspelling_counters(p):
     assert p.MISSPELLED == before + 2
 
 
-def test_missing_dad_mom_tables_are_reported(p):
-    assert p.missing_tables == ["dad.pat", "mom.pat"]
+def test_dad_mom_tables_recovered_from_the_core_image(p):
+    assert p.missing_tables == []
+    assert p.getprop("H0037", "DAD") == "H0754" and p.getprop("H0037", "MOM") == "H0755"
+    assert p.getprop("H3030", "DAD") == "H4808" and p.getprop("P3030", "MOM") == "H4809"
+    # (HOW YOU REPLY) -> H0037 (YOU_DO); with the DAD/MOM flag it is redirected
+    # to the parent's occupation unit instead of the FAMLY fall-back
+    assert pattern(p, "how do you reply?") == "H0037"
+    assert pattern(p, "how does your dad reply?") == "H0754" and p.FAMILY_FLAG == "DAD"
+    assert pattern(p, "how does your mom reply?") == "H0755" and p.FAMILY_FLAG == "MOM"

@@ -24,9 +24,9 @@ The simple/compound pattern tables reproduce the binary-table semantics of
 ``parfns.fai`` (SPAT/CPAT look a word list up by its words' first five
 characters; SYNNYM returns a five-character canonical word).
 
-Not recoverable: ``DAD.PAT`` and ``MOM.PAT`` (referenced by INIT_DICTIO, not
-in the surviving source tree).  The FAMLY.PAT table is loaded; the DAD/MOM
-variants fall back to it exactly as MATCH does.
+``DAD.PAT`` and ``MOM.PAT`` are not in the surviving source tree; the seven
+entries of each were recovered from the property lists in the November 1974
+core image (PARRY.DMP) and are bundled as ``dad.pat`` / ``mom.pat``.
 """
 
 from __future__ import annotations
