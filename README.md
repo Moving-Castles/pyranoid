@@ -121,11 +121,12 @@ made it possible to check the port against the original in memory:
 - The CMU source tree is a later revision than the image: it adds those four
   patterns, four idioms (`GOD DAMN`, `BE YOU SURE`, …), five theorems
   (IF942–IF946), the ten paranoid reply groups and a few beliefs, and changes
-  the flare weights. 160 of the 247 compiled routines are the same code (every
-  routine of `front.lap` and `opar3` among them); the ones that differ are in
-  `pmem`, `pmem2`, `pmem4`, `pmem5` and `win` — ANDTHEN, REPLYR, REPETITION,
-  PPARANOIA, CHECKINPUT, AFFECT, INITPARAMS, the window code — which the
-  "authentic behaviour" list below reflects. The port follows the source.
+  the flare weights. 188 of the 247 compiled routines are the same code (all
+  of `opar3`, and all of `front.lap` but the debug printer WINDOW_PRINT, which
+  the image had stubbed out); the ones that differ are in `pmem`, `pmem2`,
+  `pmem4`, `pmem5` and `win` — ANDTHEN, REPLYR, REPETITION, PPARANOIA,
+  CHECKINPUT, AFFECT, INITPARAMS, DATE's leap years, the window code — which
+  the "authentic behaviour" list below reflects. The port follows the source.
 - LISP 1.6 semantics the port had assumed were confirmed from the image and
   the SAILON 28.7 manual: `PROG2` returns its second argument (up to five are
   allowed), READCH and EXPLODE return numbers for digit characters, integer
